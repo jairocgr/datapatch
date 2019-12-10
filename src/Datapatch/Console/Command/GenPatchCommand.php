@@ -28,7 +28,7 @@ class GenPatchCommand extends BaseCommand
         $this->console->puts("Patch <b>{$patch}</b> created!");
 
         foreach ($patch->getScripts() as $script) {
-            $this->console->fade("Creating <b>{$script}.sql</b><fade> script...");
+            $this->console->fade("Creating <b>{$script}</b><fade> script...");
             $script->create();
         }
 
