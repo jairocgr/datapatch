@@ -104,23 +104,23 @@ class Datapatch
         $this->config = $this->wrap($config);
 
         $this->dir = $this->config->extract('patches', 'db/patches', function ($dir) {
-            if (is_dir($dir)) {} else {
+            if (is_string($dir)) {
+                return $dir;
+            } else {
                 throw new InvalidArgumentException(
-                    "Patches directory \"{$dir}\" not found!"
+                    "Invalid patches directory!"
                 );
             }
-
-            return $dir;
         });
 
         $this->bundleDir = $this->config->extract('bundles', 'db/bundles', function ($dir) {
-            if (is_dir($dir)) {} else {
+            if (is_string($dir)) {
+                return $dir;
+            } else {
                 throw new InvalidArgumentException(
-                    "Bundles directory \"{$dir}\" not found!"
+                    "Invalid bundle directory!"
                 );
             }
-
-            return $dir;
         });
 
         $this->env = $this->config->get('env', 'development');
@@ -499,6 +499,8 @@ class Datapatch
     {
         $path = $this->bundlePath($bundle);
 
+        $this->createBundleDir();
+
         $success = file_put_contents($path,
            "#\n" .
            "# Bundle {$bundle}\n" .
@@ -510,6 +512,22 @@ class Datapatch
         if (!$success) {
             throw new RuntimeException(
                 "Can not create \"{$bundle}\" file!"
+            );
+        }
+    }
+
+    private function createBundleDir()
+    {
+        if (is_dir($this->bundleDir)) {
+            // Already created
+            return TRUE;
+        }
+
+        $success = @mkdir($this->bundleDir, 0755, TRUE);
+
+        if (!$success) {
+            throw new RuntimeException(
+                "Can not create \"{$this->bundleDir}\" directory!"
             );
         }
     }
@@ -861,7 +879,14 @@ class Datapatch
 
     public function createPatchDir($patch)
     {
-        $success = mkdir("{$this->dir}/{$patch}");
+        $patchDir = "{$this->dir}/{$patch}";
+
+        if (is_dir($patchDir)) {
+            // Nothing to do
+            return TRUE;
+        }
+
+        $success = @mkdir($patchDir, 0755, TRUE);
 
         if (!$success) {
             throw new RuntimeException(
