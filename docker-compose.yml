@@ -1,0 +1,35 @@
+version: "3"
+
+networks:
+  datapatch:
+
+services:
+  mysql56:
+    image: mysql:5.6.40
+    container_name: datapatch-mysql56
+    ports:
+      - 13356:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: $MYSQL56_PASSWORD
+    networks:
+      - datapatch
+
+  mysql57:
+    image: mysql:5.7.26
+    container_name: datapatch-mysql57
+    ports:
+      - 13357:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: $MYSQL57_PASSWORD
+    networks:
+      - datapatch
+
+  production:
+    image: mysql:5.6.40
+    container_name: datapatch-mysql-production
+    ports:
+      - 13500:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: $MYSQL_PRODUCTION_PASSWORD
+    networks:
+      - datapatch

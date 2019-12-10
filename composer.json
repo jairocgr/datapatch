@@ -1,0 +1,46 @@
+{
+	"name" : "jairocgr/datapatch",
+	"description" : "Database migrations for multiples servers and schemas",
+	"type" : "library",
+	"license" : "MIT",
+	"version" : "1.0.0",
+	"homepage" : "https://github.com/jairocgr/datapatch",
+	"prefer-stable" : true,
+	"authors" : [
+        {
+			"name" : "Jairo Rodrigues Filho",
+			"email" : "jairocgr@gmail.com"
+		}
+	],
+	"autoload" : {
+		"psr-4" : {
+			"" : "src/"
+		},
+		"files" : [
+			"inc/functions.php"
+		]
+	},
+	"autoload-dev" : {
+		"psr-4" : {
+			"" : "tests/shared/"
+		}
+	},
+	"require" : {
+		"php" : ">=5.6",
+		"ext-pdo" : "*",
+		"ext-zlib" : "*",
+		"symfony/console" : "~3.3",
+		"symfony/process" : "^4.2",
+		"vlucas/phpdotenv" : "^2.5",
+		"marcj/topsort": "^1.1"
+	},
+	"require-dev" : {
+		"phpunit/phpunit" : "^7"
+	},
+	"scripts" : {
+		"post-install-cmd" : "[ -f .env ] || cp .env.example .env"
+	},
+	"bin" : [
+		"bin/datapatch"
+	]
+}
