@@ -3,7 +3,7 @@
 	"description" : "Database migrations for multiples servers and schemas",
 	"type" : "library",
 	"license" : "MIT",
-	"version" : "1.0.1",
+	"version" : "1.1.0",
 	"homepage" : "https://github.com/jairocgr/datapatch",
 	"prefer-stable" : true,
 	"authors" : [
@@ -30,7 +30,7 @@
 		"ext-pdo" : "*",
 		"ext-zlib" : "*",
 		"symfony/console" : "~3.3",
-		"symfony/process" : "^4.2",
+		"symfony/process" : "^3.4.36",
 		"vlucas/phpdotenv" : "^2.5",
 		"marcj/topsort": "^1.1"
 	},
