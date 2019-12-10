@@ -3,7 +3,7 @@
 	"description" : "Database migrations for multiples servers and schemas",
 	"type" : "library",
 	"license" : "MIT",
-	"version" : "1.0.0",
+	"version" : "1.0.1",
 	"homepage" : "https://github.com/jairocgr/datapatch",
 	"prefer-stable" : true,
 	"authors" : [
