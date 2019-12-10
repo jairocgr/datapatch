@@ -4,33 +4,18 @@ namespace Datapatch;
 
 use Closure;
 use Datapatch\Core\DatabaseServer;
-use Datapatch\Core\DatabaseSnapper;
-use Datapatch\Core\RepositoryItem;
-use Datapatch\Core\SnapRepository;
 use Datapatch\Core\Shell;
-use Datapatch\Core\Snap;
 use Datapatch\Core\Patch;
 use Datapatch\Core\Bundle;
 use Datapatch\Core\Script;
 use Datapatch\Core\ScriptPath;
-use Datapatch\Core\SnapperConfiguration;
-use Datapatch\Core\SnapRestorer;
-use Datapatch\Core\SnapLocation;
-use Datapatch\Core\SnapUploader;
 use Datapatch\Lang\Asserter;
 use Datapatch\Lang\DataBag;
 use Datapatch\Lang\FileReader;
 use Datapatch\Mysql\MysqlDatabaseServer;
-use Datapatch\Mysql\MysqlDatabaseSnapper;
-use Datapatch\Mysql\MysqlSnapRestorer;
-use Datapatch\Repository\LocalRepository;
-use Datapatch\Repository\S3Repository;
-use Datapatch\Repository\SftpRepository;
-use Datapatch\S3\S3SnapUploader;
 use InvalidArgumentException;
 use RuntimeException;
 use Exception;
-use Datapatch\Core\PatchesRepository;
 use Datapatch\Core\ScriptRunningConfiguration;
 use SplDoublyLinkedList;
 
@@ -1167,98 +1152,6 @@ class Datapatch
         return $scripts;
     }
 
-    public function snap($spec)
-    {
-        $snapper = $this->buildSnapperFor($spec);
-
-        $snapper->snap();
-    }
-
-    /**
-     * @return DatabaseSnapper
-     */
-    private function buildSnapperFor($snapper)
-    {
-        $snapper = $this->config->getSnapper($snapper);
-
-        $driver = $snapper->getDriver();
-
-        switch ($driver) {
-            case 'mysql':
-
-                return new MysqlDatabaseSnapper($this->bus, $this->shell, $snapper);
-
-                break;
-            default:
-                throw new RuntimeException(
-                    "Insuported \"{$driver}\" database driver"
-                );
-        }
-    }
-
-    public function restore($snapper, $target)
-    {
-        $restore = $this->buildRestorer($snapper, $target);
-
-        $restore->restore();
-    }
-
-    /**
-     * @return SnapRestorer
-     */
-    private function buildRestorer($snapper, $target)
-    {
-        $settings = $this->config->getRestoringSettings($snapper, $target);
-
-        $driver = $settings->getDriver();
-
-        switch ($driver) {
-            case 'mysql':
-
-                return new MysqlSnapRestorer($this->bus, $this->shell, $settings);
-
-                break;
-            default:
-                throw new RuntimeException(
-                    "Insuported \"{$driver}\" database driver"
-                );
-        }
-    }
-
-    public function upload($snapper, $target)
-    {
-        $restore = $this->buildUploader($snapper, $target);
-
-        $restore->upload();
-    }
-
-    /**
-     * @return SnapUploader
-     */
-    private function buildUploader($snapper, $target)
-    {
-        $settings = $this->config->getUploadSettings($snapper, $target);
-
-        $driver = $settings->getDriver();
-
-        switch ($driver) {
-            case 's3':
-
-                return new S3SnapUploader($this->bus, $settings);
-
-                break;
-            default:
-                throw new RuntimeException(
-                    "Insuported \"{$driver}\" repository driver"
-                );
-        }
-    }
-
-    public function on($event, Closure $callback)
-    {
-        $this->bus->on($event, $callback);
-    }
-
     /**
      * @return DatabaseServer
      */
@@ -1313,127 +1206,6 @@ class Datapatch
         });
     }
 
-    public function puts($message)
-    {
-        $this->bus->publish(static::OUTPUT, $message);
-    }
-
-    /**
-     * @return SnapperConfiguration
-     */
-    public function getSnapperConfiguration($snapper = NULL)
-    {
-        if ($snapper == NULL) {
-            return $this->defaultSnapper;
-        }
-
-        if (!isset($this->snappers[$snapper]))
-        {
-            throw new RuntimeException(
-                "Snapper \"{$snapper}\" not found!"
-            );
-        }
-
-        return $this->snappers[$snapper];
-    }
-
-
-    /**
-     * @return SnapRepository
-     */
-    private function getRepository($repo)
-    {
-        if (!isset($this->repositories[$repo]))
-        {
-            throw new RuntimeException(
-                "Repository \"{$repo}\" not found!"
-            );
-        }
-
-        return $this->repositories[$repo];
-    }
-
-    /**
-     * @param $path
-     * @return RepositoryItem[]
-     */
-    public function ls($path)
-    {
-        $locator = $this->parse($path);
-
-        $repo = $locator->getRepository();
-        $path = $locator->getPath();
-
-        return $repo->ls($path);
-    }
-
-    /**
-     * @param $path
-     * @return RepositoryItem
-     */
-    public function get($path)
-    {
-        $locator = $this->parse($path);
-
-        $repo = $locator->getRepository();
-        $path = $locator->getPath();
-
-        return $repo->get($path);
-    }
-
-    public function mkdir($path)
-    {
-        $locator = $this->parse($path);
-
-        $repo = $locator->getRepository();
-        $path = $locator->getPath();
-
-        return $repo->mkdir($path);
-    }
-
-    /**
-     * @return SnapLocation
-     */
-    public function parse($path)
-    {
-        $path = $this->normalizePath($path);
-
-        $matches = [];
-
-        if (preg_match("/^([a-z][\w\d\-\_\.]*)(:.*)?$/i", $path, $matches)) {
-            $repo = $matches[1];
-
-            if (isset($matches[2])) {
-                $subPath = $matches[2];
-                $subPath = ltrim($subPath, ':');
-            } else {
-                $subPath = '';
-            }
-
-            if ($this->repositoryExist($repo)) {
-                return new SnapLocation($this->getRepository($repo), new Path($subPath));
-            } elseif (empty($subPath)) {
-                // If repository don't exist and path is empty, this may mean
-                // that the repo itself is a directory or snapshot in the current dir
-                return new SnapLocation($this->defaultRepository, new Path($repo));
-            } else {
-                // Then the user is trying to list something inside a invalid
-                // snapshot repo
-                throw new InvalidArgumentException(
-                    "Repository \"{$repo}\" not found!"
-                );
-            }
-
-        } else {
-            return new SnapLocation($this->defaultRepository, new Path($path));
-        }
-    }
-
-    private function repositoryExist($repo)
-    {
-        return isset($this->repositories[$repo]);
-    }
-
     private function normalizePath($path)
     {
         $path = trim(strval($path));
@@ -1463,27 +1235,4 @@ class Datapatch
         return $path;
     }
 
-    /**
-     * @param $path string
-     * @return Snap[]
-     */
-    public function findSnaps($path)
-    {
-        $item = $this->get($path);
-        $snaps = [];
-
-        foreach ($item->ls() as $entry) {
-            if ($entry->isSnapshot()) {
-                $snaps[] = $entry;
-            }
-        }
-
-        if (!empty($snaps)) {
-            return $snaps;
-        }
-
-        else throw new InvalidArgumentException(
-            "Snapshot \"{$path}\" not found!"
-        );
-    }
 }
