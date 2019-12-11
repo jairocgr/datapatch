@@ -78,12 +78,11 @@ trait ScriptRunner
                     "at <b>{$database->getServer()}</>... "
                 );
 
-
                 $database->lock();
 
                 $state = $database->getScriptState($script);
 
-                if ($state == Database::SCRIPT_EXECUTED && !$this->forcedExecution()) {
+                if ($state == Database::SCRIPT_EXECUTED) {
                     $this->writeln("<success>Already executed ✓</success>");
                 }
 
@@ -102,7 +101,7 @@ trait ScriptRunner
                     $this->puts("");
                     $this->puts("  $ datapatch <b>mark-executed</b> {$script} -d <b>{$database}</>");
                     $this->puts("");
-                    $this->puts("You can also force re-apply it using the <b>--force</b> flag.");
+                    $this->puts("You can also force it using the <b>--force</b> flag.");
                     $this->puts("");
 
                     $database->unlock();
