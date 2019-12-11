@@ -106,6 +106,18 @@
       // Generator command won't generate policy.sql
       'generate_script' => FALSE
     ],
+
+    'telemetry' => [
+      'databases' => 'zun',
+      'servers' => 'mysql56',
+      'generate_script' => FALSE,
+
+      // if production use another schema and server
+      'production' => [
+        'databases' => 'logs',
+        'servers' => 'mysql57',
+      ]
+    ]
   ]
 
 ];

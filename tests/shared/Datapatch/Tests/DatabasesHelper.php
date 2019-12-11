@@ -7,6 +7,7 @@ namespace Datapatch\Tests;
 use Datapatch\Lang\DataBag;
 use PDO;
 use PDOStatement;
+use Exception;
 
 class DatabasesHelper
 {
@@ -24,6 +25,16 @@ class DatabasesHelper
     {
         $this->config = new DataBag($config);
         $this->env = $env;
+    }
+
+    public function tableExists($server, $database, $table)
+    {
+        try {
+            $this->query($server, $database, "select * from {$table}");
+            return TRUE;
+        } catch (Exception $e) {
+            return FALSE;
+        }
     }
 
     public function queryFirst($server, $database, $sql)

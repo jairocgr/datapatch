@@ -76,6 +76,63 @@ class ExecCommandTest extends TestCase
             3,
             $this->databases->queryFirst('mysql57', 'logs', "SELECT count(*) as nrows FROM dev122log")->nrows
         );
+
+        $this->assertTrue($this->databases->tableExists('mysql56', 'zun', 'telemetry'));
+        $this->assertFalse($this->databases->tableExists('mysql57', 'logs', 'telemetry'));
+
+        $this->assertEquals(
+            2,
+            $this->databases->queryFirst('mysql56', 'zun', "SELECT count(*) as nrows FROM telemetry")->nrows
+        );
+    }
+
+    public function testApplyDev122Scoped()
+    {
+        $this->databases = $this->helper->getDatabasesHelper('production');
+
+        $out = $this->shell->run("
+            php bin/datapatch status -e production -y
+        ");
+
+        $this->assertStringContainsString('DEV-122', $out);
+
+        $out = $this->shell->run("
+            php bin/datapatch apply DEV-122 -e production -y
+        ");
+
+        $out = $this->shell->run("
+            php bin/datapatch status -e production -y
+        ");
+
+        $this->assertStringNotContainsString('DEV-122', $out);
+
+        $this->assertEquals(
+            5,
+            $this->databases->queryFirst('mysql56', 'zun_rs', "SELECT count(*) as nrows FROM dev122pap")->nrows
+        );
+
+        $this->assertEquals(
+            5,
+            $this->databases->queryFirst('mysql57', 'zun_mt', "SELECT count(*) as nrows FROM dev122pap")->nrows
+        );
+
+        $this->assertEquals(
+            5,
+            $this->databases->queryFirst('local', 'zun_ro', "SELECT count(*) as nrows FROM dev122pap")->nrows
+        );
+
+        $this->assertEquals(
+            3,
+            $this->databases->queryFirst('mysql57', 'logs', "SELECT count(*) as nrows FROM dev122log")->nrows
+        );
+
+        $this->assertFalse($this->databases->tableExists('mysql56', 'zun', 'telemetry'));
+        $this->assertTrue($this->databases->tableExists('mysql57', 'logs', 'telemetry'));
+
+        $this->assertEquals(
+            2,
+            $this->databases->queryFirst('mysql57', 'logs', "SELECT count(*) as nrows FROM telemetry")->nrows
+        );
     }
 
     private function nonAppliedPatchesContains($patch)

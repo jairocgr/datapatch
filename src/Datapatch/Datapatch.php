@@ -1093,6 +1093,14 @@ class Datapatch
                 $this );
         } elseif ($config instanceof DataBag) {
 
+            $env = $this->getEnv();
+
+            // If has a environment scoped configuration
+            if ($config->exists($env)) {
+                $envConf = $config->get($env);
+                $config->merge($envConf);
+            }
+
             $databases = $config->get('databases', $scriptName);
             $databases = is_string($databases) ? [ $databases ] : $databases;
 
