@@ -471,6 +471,65 @@ class ExecCommandTest extends TestCase
     }
 
 
+    public function testGenFailedPatchWithTransaction()
+    {
+        $out = $this->shell->run("
+            php bin/datapatch gen:patch ERR01
+        ");
+
+        $this->assertFileExists('db/patches/ERR01/pap.sql');
+        $this->assertFileExists('db/patches/ERR01/zun.sql');
+        $this->assertFileExists('db/patches/ERR01/reports.sql');
+        $this->assertFileExists('db/patches/ERR01/log.sql');
+
+
+
+
+        unlink('db/patches/ERR01/pap.sql');
+        unlink('db/patches/ERR01/reports.sql');
+
+        file_put_contents('db/patches/ERR01/log.sql', "SELECT 1;\n");
+        file_put_contents('db/patches/ERR01/zun.sql',
+            file_get_contents('tests/scripts/transaction_test.sql')
+        );
+
+        $out = $this->shell->run("
+            php bin/datapatch apply ERR01/log
+        ");
+        $this->assertStringContainsString("... Done", $out);
+
+
+
+
+        try {
+            $out = $this->shell->run("
+                php bin/datapatch apply ERR01
+            ");
+            $this->assertTrue(FALSE);
+        } catch (Exception $ex) {
+            $this->assertTrue(TRUE);
+        }
+
+
+
+        // fix script
+        file_put_contents('db/patches/ERR01/zun.sql', "select 1;");
+
+
+        // try apply and must be denied
+        $out = $this->shell->run("
+            php bin/datapatch apply ERR01
+        ", NULL, FALSE);
+        $this->assertStringContainsString("ERR01/zun.sql was previously executed and raised an error!", $out);
+
+        $this->assertEquals(
+            2,
+            $this->databases->queryFirst('mysql56', 'zun', "SELECT count(*) as nrows FROM transaction")->nrows
+        );
+
+    }
+
+
     public function testInsertCommand()
     {
         $this->shell->run("
