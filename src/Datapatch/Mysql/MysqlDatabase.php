@@ -109,7 +109,6 @@ class MysqlDatabase implements Database
 
             $done = TRUE;
 
-
         } finally {
             if (!$done) {
                 try {
@@ -189,9 +188,9 @@ class MysqlDatabase implements Database
 
     private function updateRunningStates()
     {
-        // All script running are assumed to be errored
+        // All script running are assumed to be unfinished
         $this->exec("
-            update __datapatch set status = 'error'
+            update __datapatch set status = 'unfinished'
             where status = 'running'
         ");
     }
@@ -204,9 +203,9 @@ class MysqlDatabase implements Database
         $this->exec("UNLOCK TABLES");
     }
 
-    private function run($command)
+    private function run($file)
     {
-        $this->server->callMysqlClient($this, $command);
+        $this->server->callMysqlClient($this, $file);
     }
 
     /**

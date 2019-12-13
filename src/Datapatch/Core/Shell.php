@@ -49,7 +49,7 @@ class Shell
         return $process;
     }
 
-    public function run($command, $input = NULL, $throw = TRUE)
+    public function run($command, $input = NULL)
     {
         $process = $this->build($command);
 
@@ -59,7 +59,7 @@ class Shell
 
         $process->run();
 
-        if (!$process->isSuccessful() && $throw) {
+        if (!$process->isSuccessful()) {
             throw new RuntimeException(
                 "Troubles executing the command! {$process->getErrorOutput()}"
             );

@@ -9,6 +9,7 @@ interface Database
     const SCRIPT_RUNNING      = 'running';
     const SCRIPT_EXECUTED     = 'executed';
     const SCRIPT_ERRORED      = 'error';
+    const SCRIPT_UNFINISHED   = 'unfinished';
     const SCRIPT_NOT_EXECUTED = 'not_executed';
 
     /**

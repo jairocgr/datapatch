@@ -3,6 +3,8 @@
 namespace Datapatch\Util;
 
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 
 class ConsoleOutput
 {
@@ -11,8 +13,14 @@ class ConsoleOutput
      */
     private $io;
 
+    /**
+     * @var OutputInterface
+     */
+    private $out;
+
     public function __construct($input, $output)
     {
+        $this->out = $output;
         $this->io = new SymfonyStyle($input, $output);
     }
 
@@ -29,6 +37,23 @@ class ConsoleOutput
     public function puts($message = "")
     {
         return $this->io->text($this->parse($message));
+    }
+
+    public function stderr($message = "")
+    {
+        $stderr = $this->getErrorOutput();
+        $message = ' ' . $this->parse($message);
+
+        return $stderr->writeln($message);
+    }
+
+    private function getErrorOutput()
+    {
+        if (!$this->out instanceof ConsoleOutputInterface) {
+            return $this->out;
+        }
+
+        return $this->out->getErrorOutput();
     }
 
     public function bold($message)

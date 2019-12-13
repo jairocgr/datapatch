@@ -9,7 +9,7 @@ use Datapatch\Tests\TestHelper;
 use PHPUnit\Framework\TestCase;
 use Exception;
 
-class ExecCommandTest extends TestCase
+class DatapatchAppTest extends TestCase
 {
     /**
      * @var Shell
@@ -39,6 +39,15 @@ class ExecCommandTest extends TestCase
         }
 
         $this->bootTestDatabase();
+    }
+
+    public function tearDown()
+    {
+        if (is_dir('db/patches/ERR01')) {
+            $this->shell->run("
+                rm -rf db/patches/ERR01
+            ");
+        }
     }
 
     private function bootTestDatabase()
@@ -332,19 +341,28 @@ class ExecCommandTest extends TestCase
 
 
 
-        $out = $this->shell->run("
-            php bin/datapatch apply ERR01 2>&1
-        ", NULL, FALSE);
-        $this->assertStringContainsString("... Already executed", $out);
+        try {
+            $out = $this->shell->run("
+                php bin/datapatch apply ERR01
+            ");
+            $this->assertTrue(FALSE);
+        } catch (Exception $e) {
+            $this->assertStringContainsString("ERROR 1054", $e->getMessage());
+        }
+
 
 
 
         // fix syntax
         file_put_contents('db/patches/ERR01/pap.sql', "INSERT INTO hash VALUES (1500, 'key1500', 'val1500');\n");
-        $out = $this->shell->run("
-            php bin/datapatch apply ERR01
-        ", NULL, FALSE);
-        $this->assertStringContainsString("ERR01/pap.sql was previously executed and raised an error!", $out);
+        try {
+            $out = $this->shell->run("
+                php bin/datapatch apply ERR01
+            ");
+            $this->assertTrue(FALSE);
+        } catch (Exception $e) {
+            $this->assertStringContainsString("ERR01/pap.sql was previously executed and raised an error!", $e->getMessage());
+        }
 
 
 
@@ -410,12 +428,14 @@ class ExecCommandTest extends TestCase
 
 
         // try apply and must be denied
-        $out = $this->shell->run("
-            php bin/datapatch apply ERR01
-        ", NULL, FALSE);
-        $this->assertStringContainsString("ERR01/pap.sql was previously executed and raised an error!", $out);
-
-
+        try {
+            $out = $this->shell->run("
+                php bin/datapatch apply ERR01
+            ");
+            $this->assertTrue(FALSE);
+        } catch (Exception $e) {
+            $this->assertStringContainsString("ERR01/pap.sql was previously executed and raised an error!", $e->getMessage());
+        }
 
         // pap.sql must have not be applied
         $this->assertEquals(
@@ -519,11 +539,17 @@ class ExecCommandTest extends TestCase
 
 
         // try apply and must be denied
-        $out = $this->shell->run("
-            php bin/datapatch apply ERR01
-        ", NULL, FALSE);
-        $this->assertStringContainsString("ERR01/zun.sql was previously executed and raised an error!", $out);
+        try {
+            $out = $this->shell->run("
+                php bin/datapatch apply ERR01
+            ");
+            $this->assertTrue(FALSE);
+        } catch (Exception $e) {
+            $this->assertStringContainsString("ERR01/zun.sql was previously executed and raised an error!", $e->getMessage());
+        }
 
+
+        // Check if first transaction was commited
         $this->assertEquals(
             2,
             $this->databases->queryFirst('mysql56', 'zun', "SELECT count(*) as nrows FROM transaction")->nrows

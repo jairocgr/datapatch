@@ -402,47 +402,17 @@ class MysqlDatabaseServer implements DatabaseServer
         }
     }
 
-    private function looksLikeAScriptPath($path)
-    {
-        return $path == 'php://stdin' || is_file($path);
-    }
-
-    private function openScriptFile($filepath)
-    {
-        if ($filepath == "php://stdin") {
-            return $this->fopen($filepath, 'r');
-        } elseif (file_exists($filepath)) {
-            return $this->fopen($filepath, 'r');
-        } else {
-            throw new InvalidArgumentException(
-                "File \"{$filepath}\" does not exists!"
-            );
-        }
-    }
-
-    private function fopen($filepath, $mode)
-    {
-        if ($handle = fopen($filepath, $mode)) {
-            return $handle;
-        } else {
-            throw new RuntimeException("File \"{$filepath}\" could not be opened!");
-        }
-    }
-
     /**
      * @param $database string|null|DatabaseServer
-     * @param $input string|resource
+     * @param $input string Script file path
      * @return string
      */
     public function callMysqlClient($database, $input, $compressedInput = FALSE)
     {
-        if (is_resource($input)) {
-            // Input is ready
-            $input = $input;
-        } elseif ($this->looksLikeAScriptPath($input)) {
-            $input = $this->openScriptFile($input);
-        } else {
-            $input = strval($input);
+        if (file_exists($input)) {} else {
+            throw new RuntimeException(
+                "Script file \"$input\" not found!"
+            );
         }
 
         if (!$this->commandExists('mysql')) {
@@ -468,14 +438,14 @@ class MysqlDatabaseServer implements DatabaseServer
         }
 
         if ($compressedInput) {
-            $cmd = "gunzip | ";
+            $cmd = "gunzip < {$$input} | ";
         } else {
-            $cmd = "cat -- | ";
+            $cmd = "cat {$input} | ";
         }
 
         $cmd .= "mysql --defaults-file={$this->connectionFile} -n --table {$database}";
 
-        return $this->shell->run($cmd, $input);
+        return $this->shell->run($cmd);
     }
 
     private function connectionFileExists()

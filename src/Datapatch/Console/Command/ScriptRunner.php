@@ -88,26 +88,52 @@ trait ScriptRunner
 
                 elseif ($state == Database::SCRIPT_ERRORED && !$this->forcedExecution()) {
                     $this->writeln("<err>Already executed ✖</err>");
-                    $this->puts("");
-                    $this->puts("The script <err>{$script}</err> was previously executed and raised an error!");
-                    $this->puts("");
-                    $this->puts("You may have to fix the script and, if needed, run a stand-alone script");
-                    $this->puts("to correct any wrong database state:");
-                    $this->puts("");
-                    $this->puts("  $ datapatch exec fix.sql -d {$database} --server {$database->getServer()}");
-                    $this->puts("");
-                    $this->puts("Mark it as executed and you will be able to re-apply the <b>{$patch}</b> patch");
-                    $this->puts("in the remaining databases:");
-                    $this->puts("");
-                    $this->puts("  $ datapatch <b>mark-executed</b> {$script} -d <b>{$database}</>");
-                    $this->puts("");
-                    $this->puts("You can also force it using the <b>--force</b> flag.");
-                    $this->puts("");
+                    $this->stderr("");
+                    $this->stderr("The script <err>{$script}</err> was previously executed and raised an error!");
+                    $this->stderr("");
+                    $this->stderr("You may have to fix the script and, if needed, run a stand-alone script");
+                    $this->stderr("to correct any wrong database state:");
+                    $this->stderr("");
+                    $this->stderr("  $ datapatch exec fix.sql -d {$database} --server {$database->getServer()}");
+                    $this->stderr("");
+                    $this->stderr("Mark it as executed and you will be able to re-apply the <b>{$patch}</b> patch");
+                    $this->stderr("in the remaining databases:");
+                    $this->stderr("");
+                    $this->stderr("  $ datapatch <b>mark-executed</b> {$script} -d <b>{$database}</>");
+                    $this->stderr("");
+                    $this->stderr("You can also force it using the <err>dangerous</> <b>--force</b> flag.");
+                    $this->stderr("");
 
                     $database->unlock();
 
                     // Signals abnormal termination
                     exit(32);
+                }
+
+                elseif ($state == Database::SCRIPT_UNFINISHED && !$this->forcedExecution()) {
+                    $this->writeln("<warn>Unfinished ✖</warn>");
+                    $this->stderr("");
+                    $this->stderr("The script <warn>{$script}</warn> seems to was previously executed but");
+                    $this->stderr("was interrupted before it was done.");
+                    $this->stderr("");
+                    $this->stderr("You may have to inspect the the database and correct any wrong");
+                    $this->stderr("database state left by the unfinished script.");
+                    $this->stderr("");
+                    $this->stderr("If the script has a single transaction it may have been rollbacked");
+                    $this->stderr("without any integrity damage (but it is your job to ensure that).");
+                    $this->stderr("");
+                    $this->stderr("Mark it as executed and you will be able to re-apply the <b>{$patch}</b> patch");
+                    $this->stderr("in the remaining databases:");
+                    $this->stderr("");
+                    $this->stderr("  $ datapatch <b>mark-executed</b> {$script} -d <b>{$database}</>");
+                    $this->stderr("");
+                    $this->stderr("You can also force it using the <err>dangerous</> <b>--force</b> flag.");
+                    $this->stderr("");
+
+                    $database->unlock();
+
+                    // Signals abnormal termination
+                    exit(64);
                 }
 
                 else {

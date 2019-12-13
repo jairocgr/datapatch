@@ -5,7 +5,7 @@ networks:
 
 services:
   mysql56:
-    image: mysql:5.6.40
+    build: docker/images/mysql56
     container_name: datapatch-mysql56
     ports:
       - 13356:3306
@@ -15,7 +15,7 @@ services:
       - datapatch
 
   mysql57:
-    image: mysql:5.7.26
+    build: docker/images/mysql57
     container_name: datapatch-mysql57
     ports:
       - 13357:3306
@@ -25,7 +25,7 @@ services:
       - datapatch
 
   production:
-    image: mysql:5.6.40
+    build: docker/images/mysql-production
     container_name: datapatch-mysql-production
     ports:
       - 13500:3306

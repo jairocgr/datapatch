@@ -151,6 +151,11 @@ abstract class BaseCommand extends Command
         $this->console->puts($msg);
     }
 
+    protected function stderr($msg = "")
+    {
+        $this->console->stderr($msg);
+    }
+
     /** @return array */
     private function loadConfig()
     {
