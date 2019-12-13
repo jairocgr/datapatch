@@ -159,7 +159,7 @@ class ExecCommandTest extends TestCase
         $this->nonAppliedPatchesContains("CARD-3235");
 
         $out = $this->shell->run("
-            php bin/datapatch apply 2019.10.12
+            php bin/datapatch deploy 2019.10.12
         ");
 
         $this->nonAppliedPatchesDoNotContains("CARD-3236");
@@ -189,7 +189,7 @@ class ExecCommandTest extends TestCase
     public function testApplyAll()
     {
         $out = $this->shell->run("
-            php bin/datapatch apply 2019.10.12
+            php bin/datapatch deploy 2019.10.12
         ");
 
         $this->nonAppliedPatchesContains("DEV-231");
@@ -247,7 +247,7 @@ class ExecCommandTest extends TestCase
         $this->databases = $this->helper->getDatabasesHelper('production');
 
         $out = $this->shell->run("
-            php bin/datapatch apply 2019.10.12 -e production -y
+            php bin/datapatch deploy 2019.10.12 -e production -y
         ");
 
         $out = $this->shell->run("
