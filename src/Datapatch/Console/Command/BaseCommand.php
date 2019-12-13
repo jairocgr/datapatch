@@ -5,6 +5,7 @@ namespace Datapatch\Console\Command;
 use Datapatch\Core\DatabaseServer;
 use Datapatch\Datapatch;
 use Datapatch\Lang\DataBag;
+use Datapatch\Core\Environment;
 use Datapatch\Util\ConsoleOutput;
 use RuntimeException;
 use InvalidArgumentException;
@@ -37,6 +38,11 @@ abstract class BaseCommand extends Command
     protected $datapatch;
 
     /**
+     * @var Environment
+     */
+    protected $env;
+
+    /**
      * @var ConsoleOutput
      */
     protected $console;
@@ -67,7 +73,8 @@ abstract class BaseCommand extends Command
                 'env',
                 'e',
                 InputOption::VALUE_OPTIONAL,
-                'Choosed environment'
+                'Choosed environment',
+                'development'
              )
 
              ->addOption(
@@ -94,8 +101,10 @@ abstract class BaseCommand extends Command
 
         $this->datapatch = new Datapatch($this->config);
 
-        if ($this->datapatch->runningInProduction()) {
-            if ($this->canContinue("Proceed running in <err>production</> environment?")) {} else {
+        $this->env = $this->datapatch->getEnv();
+
+        if ($this->env->isProtected()) {
+            if ($this->canContinue("Proceed running in {$this->getFormattedEnv()} environment?")) {} else {
                 throw new RuntimeException("Denied execution!");
             }
         }
@@ -105,11 +114,26 @@ abstract class BaseCommand extends Command
 
     protected function getFormattedEnv()
     {
-        $env = $this->datapatch->getEnv();
+        $tag = $this->getEnvFmtTag();
 
-        return $this->datapatch->runningInProduction()
-            ? "<bred>{$env}</>"
-            : "<b>{$env}</>";
+        return "<{$tag}>{$this->env}</{$tag}>";
+    }
+
+    protected function getEnvFmtTag()
+    {
+        $color = $this->env->getColor();
+
+        switch ($color) {
+            case 'red':
+            case 'green':
+            case 'blue':
+            case 'yellow':
+            case 'magenta':
+            case 'cyan':
+                return "b{$color}";
+            default:
+                return 'b';
+        }
     }
 
     protected function write($msg = "")
@@ -148,6 +172,8 @@ abstract class BaseCommand extends Command
         if ($this->hasEnvOption()) {
             $env = $this->input->getOption('env');
             $config->set('env', $env);
+        } else {
+            throw new RuntimeException("Invalid empty environment option!");
         }
 
         return $config->toArray();

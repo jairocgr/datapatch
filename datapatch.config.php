@@ -4,6 +4,29 @@
   // the command line option
   'env' => env('ENV', 'development'),
 
+  // List all allowed environments and their properties
+  'environments' => [
+    'development' => [
+      // Env color can be one of the default ASCII terminal colors:
+      // red, green, blue, yellow, magenta, cyan or white
+      'color' => 'blue'
+    ],
+
+    'staging' => [
+      'color' => 'yellow',
+      // If protected, you will have to confirm before run a
+      // datapatch command
+      'protected' => TRUE
+    ],
+
+    'production' => [
+      'color' => 'red',
+      // Datapatch will set production as protected no matter what
+      // this value says
+      'protected' => TRUE
+    ]
+  ],
+
   // Databases servers you wish to apply patches, bundles and execute
   // excute sql scripts
   'database_servers' => [

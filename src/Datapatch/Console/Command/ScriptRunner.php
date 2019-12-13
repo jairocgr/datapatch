@@ -37,7 +37,7 @@ trait ScriptRunner
             return;
         }
 
-        $this->puts("Patches to be applied at <b>{$this->getFormattedEnv()}</b> env:");
+        $this->puts("Patches to be applied at {$this->getFormattedEnv()} env:");
         $this->puts("");
 
         foreach ($patches as $patch)

@@ -249,10 +249,12 @@ class ExecCommandTest extends TestCase
         $out = $this->shell->run("
             php bin/datapatch deploy 2019.10.12 -e production -y
         ");
+        $this->assertStringContainsString("at production env", $out);
 
         $out = $this->shell->run("
             php bin/datapatch apply-all -e production -y
         ");
+        $this->assertStringContainsString("at production env", $out);
 
 
         $status = $this->shell->run("
@@ -554,5 +556,44 @@ class ExecCommandTest extends TestCase
 
         $res = $this->databases->queryFirst('mysql57', 'zun_mt', "SELECT * FROM tenants WHERE id = 1200");
         $this->assertEquals('Test Tenant 1200 Çñ', $res->name);
+    }
+
+    public function testProtectedEnv()
+    {
+        $out = $this->shell->run("
+            php bin/datapatch status -e development
+        ");
+
+        $this->assertStringContainsString("DEV-122", $out);
+        $this->assertStringContainsString("CARD-3237", $out);
+        $this->assertStringContainsString("TASK-6780", $out);
+
+        try {
+            $out = $this->shell->run("
+                php bin/datapatch status -e staging
+            ");
+            $this->assertTrue(FALSE);
+        } catch (Exception $e) {
+            $this->assertStringContainsString("Denied execution", $e->getMessage());
+        }
+    }
+
+    public function testUndefinedEnv()
+    {
+        $out = $this->shell->run("
+            php bin/datapatch status -e staging -y
+        ");
+        $this->assertStringContainsString("DEV-122", $out);
+        $this->assertStringContainsString("CARD-3237", $out);
+        $this->assertStringContainsString("TASK-6780", $out);
+
+        try {
+            $out = $this->shell->run("
+                php bin/datapatch status -e beta -y
+            ");
+            $this->assertTrue(FALSE);
+        } catch (Exception $e) {
+            $this->assertStringContainsString("Invalid env \"beta\"", $e->getMessage());
+        }
     }
 }

@@ -9,6 +9,7 @@ use Datapatch\Core\Patch;
 use Datapatch\Core\Bundle;
 use Datapatch\Core\Script;
 use Datapatch\Core\ScriptPath;
+use Datapatch\Core\Environment;
 use Datapatch\Lang\Asserter;
 use Datapatch\Lang\DataBag;
 use Datapatch\Lang\FileReader;
@@ -94,6 +95,11 @@ class Datapatch
     private $patches;
 
     /**
+     * @var Environment[]
+     */
+    private $envs;
+
+    /**
      * @var Bundle[]
      */
     private $bundles;
@@ -123,13 +129,27 @@ class Datapatch
             }
         });
 
-        $this->env = $this->config->get('env', 'development');
+        $this->parseEnvironments();
+        $this->loadEnv();
 
         $this->parseDatabaseServers();
         $this->parseRunningConfiguration();
 
         $this->loadPatches();
         $this->loadBundles();
+    }
+
+    public function loadEnv()
+    {
+        $chosen = $this->config->get('env', 'development');
+
+        if (isset($this->envs[$chosen])) {
+            $this->env = $this->envs[$chosen];
+        }
+
+        else throw new RuntimeException(
+            "Invalid env \"$chosen\"!"
+        );
     }
 
     /**
@@ -149,21 +169,11 @@ class Datapatch
     }
 
     /**
-     * @return string
+     * @return Environment
      */
     public function getEnv()
     {
-        return $this->config->get('env', 'development');
-    }
-
-    /**
-     * @return bool
-     */
-    public function runningInProduction()
-    {
-        $env = $this->getEnv();
-        $env = strtolower(trim($env));
-        return in_array($env, [ 'production', 'live', 'prod' ]);
+        return $this->env;
     }
 
     /**
@@ -980,6 +990,41 @@ class Datapatch
         }
     }
 
+    private function parseEnvironments()
+    {
+        $envs = $this->config->extract('environments', function ($value, Asserter $a) {
+
+            if (empty($value)) {
+                return [];
+            }
+
+            if ($a->transversable($value)) {
+                return $value;
+            }
+
+            $a->raise("Invalid environment list!");
+        });
+
+        $default = new DataBag([
+            'development' => [
+                'color' => 'white',
+            ],
+
+            'production' => [
+                'color' => 'red',
+                'protected' => TRUE,
+            ]
+        ]);
+
+        $default->merge($envs);
+
+        $this->envs = [];
+
+        foreach ($default as $name => $config) {
+            $this->envs[$name] = new Environment($name, $config);
+        }
+    }
+
     /**
      * @param $databases string[]
      * @param $servers string[]
@@ -1094,11 +1139,12 @@ class Datapatch
         } elseif ($config instanceof DataBag) {
 
             $env = $this->getEnv();
+            $ename = $env->getName();
 
             // If has a environment scoped configuration
-            if ($config->exists($env)) {
-                $envConf = $config->get($env);
-                $config->merge($envConf);
+            if ($config->exists($ename)) {
+                $econf = $config->get($ename);
+                $config->merge($econf);
             }
 
             $databases = $config->get('databases', $scriptName);
@@ -1153,11 +1199,12 @@ class Datapatch
         });
 
         $env = $this->getEnv();
+        $ename = $env->getName();
 
         // If has a environment scoped configuration
-        if ($config->exists($env)) {
-            $envConf = $config->get($env);
-            $config->merge($envConf);
+        if ($config->exists($ename)) {
+            $econf = $config->get($ename);
+            $config->merge($econf);
         }
 
         if ($driver == MysqlDatabaseServer::DRIVER_HANDLE) {
