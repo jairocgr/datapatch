@@ -34,7 +34,7 @@ trait ScriptRunner
         if (empty($patches)) {
             $this->puts("No patches to be applied!");
             $this->puts("");
-            return;
+            return [];
         }
 
         $this->puts("Patches to be applied at {$this->getFormattedEnv()} env:");
