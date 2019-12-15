@@ -40,14 +40,83 @@ trait ScriptRunner
         $this->puts("Patches to be applied at {$this->getFormattedEnv()} env:");
         $this->puts("");
 
-        foreach ($patches as $patch)
-        {
-            $this->puts(" * <b>{$patch}</>");
-        }
+        $this->printPatchesStatuses($patches);
 
         $this->console->newLine();
 
         return $patches;
+    }
+
+    protected function printPatchesStatuses($patches)
+    {
+        foreach ($patches as $patch)
+        {
+            $this->printPatchStatus($patch);
+        }
+    }
+
+    protected function printPatchStatus($patch)
+    {
+        if ($patch->isErrored()) {
+            $this->puts(" * <b>{$patch}</> (<err>Error</>)");
+            $this->printPatchScriptsStatus($patch);
+            $this->puts("");
+        } elseif ($patch->isUnfinished()) {
+            $this->puts(" * <b>{$patch}</> (<warn>Unfinished</>)");
+            $this->printPatchScriptsStatus($patch);
+            $this->puts("");
+        } elseif ($patch->isPartiallyApplied()) {
+            $this->puts(" * <b>{$patch}</> (Partially Applied)");
+            $this->printPatchScriptsStatus($patch);
+            $this->puts("");
+        } elseif ($patch->isFullyApplied()) {
+            $this->puts(" * <b>{$patch}</> (<ok>Fully Applied ✓</>)");
+        } else {
+            $this->puts(" * <b>{$patch}</> <bfade>(not applied)</bfade>");
+        }
+    }
+
+    protected function printPatchScriptsStatus($patch)
+    {
+        foreach ($patch->getScripts() as $script)
+        {
+            $this->printScriptStatus($script, '    ');
+        }
+    }
+
+    protected function printScriptStatus($script, $indentation = ' ')
+    {
+        foreach ($script->getDatabases() as $database)
+        {
+            $state = $database->getScriptState($script);
+
+            if ($state == Database::SCRIPT_EXECUTED) {
+                $status = "<success>Done ✓</>";
+            }
+
+            elseif ($state == Database::SCRIPT_ERRORED) {
+                $status = "<err>Error ✖</>";
+            }
+
+            elseif ($state == Database::SCRIPT_UNFINISHED) {
+                $status = "<warn>Unfinished ✖</>";
+            }
+
+            elseif ($state == Database::SCRIPT_RUNNING) {
+                $status = "<b>Running...</>";
+            }
+
+            else {
+                $status = "<bfade>Not applied ✖</bfade>";
+            }
+
+            $this->puts(
+                $indentation .
+                "<b>{$script->getName()}.sql</> in <b>{$database}</> " .
+                "at <b>{$database->getServer()}</> server " .
+                "{$status}"
+            );
+        }
     }
 
     protected function apply($patch, $annex = NULL)

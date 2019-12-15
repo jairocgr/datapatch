@@ -872,11 +872,6 @@ class Datapatch
         return "{$this->bundleDir}/{$name}.yml";
     }
 
-    private function hasScript($name)
-    {
-        return count($this->getScriptFiles($name)) > 0;
-    }
-
     private function getScriptFiles($name)
     {
         return glob("{$this->patchPath($name)}/*.sql");
@@ -1045,11 +1040,13 @@ class Datapatch
     }
 
     /**
-     * @param $path ScriptPath
+     * @param $path ScriptPath|string
      * @return Script[]
      */
     public function getScript($path)
     {
+        $path = is_string($path) ? new ScriptPath($path) : $path;
+
         if ($path->pointToScript()) {
             $patch = $path->getPatch();
             $script = $path->getScript();

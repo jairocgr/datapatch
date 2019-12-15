@@ -33,7 +33,7 @@ class DatapatchAppTest extends TestCase
         $this->databases = $this->helper->getDatabasesHelper();
 
         if (is_dir('db/patches/ERR01')) {
-            $this->shell->run("
+            $this->terminal("
                 rm -rf db/patches/ERR01
             ");
         }
@@ -44,7 +44,7 @@ class DatapatchAppTest extends TestCase
     public function tearDown()
     {
         if (is_dir('db/patches/ERR01')) {
-            $this->shell->run("
+            $this->terminal("
                 rm -rf db/patches/ERR01
             ");
         }
@@ -52,19 +52,37 @@ class DatapatchAppTest extends TestCase
 
     private function bootTestDatabase()
     {
-        $this->shell->run("bash script/init-databases.sh");
+        $this->terminal("bash script/init-databases.sh");
     }
 
     public function testApplyDev122()
     {
         $this->nonAppliedPatchesContains("DEV-122");
 
-        $out = $this->shell->run("
+
+        // Check patch status
+        $out = $this->terminal("
+            php bin/datapatch status -p DEV-122
+        ");
+        $this->assertStringContainsString("DEV-122 is not applied at development", $out);
+
+
+
+        $out = $this->terminal("
             php bin/datapatch apply DEV-122
         ");
 
-
         $this->nonAppliedPatchesDoNotContains("DEV-122");
+
+
+
+        // Check patch status
+        $out = $this->terminal("
+            php bin/datapatch status -p DEV-122
+        ");
+        $this->assertStringContainsString("DEV-122 is fully applied at development", $out);
+
+
 
         $this->assertEquals(
             5,
@@ -99,17 +117,17 @@ class DatapatchAppTest extends TestCase
     {
         $this->databases = $this->helper->getDatabasesHelper('production');
 
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch status -e production -y
         ");
 
         $this->assertStringContainsString('DEV-122', $out);
 
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch apply DEV-122 -e production -y
         ");
 
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch status -e production -y
         ");
 
@@ -146,7 +164,7 @@ class DatapatchAppTest extends TestCase
 
     private function nonAppliedPatchesContains($patch)
     {
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch status
         ");
 
@@ -155,7 +173,7 @@ class DatapatchAppTest extends TestCase
 
     private function nonAppliedPatchesDoNotContains($patch)
     {
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch status
         ");
 
@@ -167,7 +185,17 @@ class DatapatchAppTest extends TestCase
         $this->nonAppliedPatchesContains("CARD-3236");
         $this->nonAppliedPatchesContains("CARD-3235");
 
-        $out = $this->shell->run("
+
+        // Check bundle status
+        $out = $this->terminal("
+            php bin/datapatch status -b 2019.10.12
+        ");
+        $this->assertStringContainsString("Bundle 2019.10.12 at development", $out);
+        $this->assertStringContainsString("CARD-3236 (not applied)", $out);
+        $this->assertStringContainsString("CARD-3235 (not applied)", $out);
+
+
+        $out = $this->terminal("
             php bin/datapatch deploy 2019.10.12
         ");
 
@@ -197,18 +225,18 @@ class DatapatchAppTest extends TestCase
 
     public function testApplyAll()
     {
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch deploy 2019.10.12
         ");
 
         $this->nonAppliedPatchesContains("DEV-231");
         $this->nonAppliedPatchesContains("CARD-3237");
 
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch apply-all
         ");
 
-        $status = $this->shell->run("
+        $status = $this->terminal("
             php bin/datapatch status
         ");
 
@@ -250,29 +278,67 @@ class DatapatchAppTest extends TestCase
     }
 
 
+    public function testPartiallyApply()
+    {
+        $this->terminal("php bin/datapatch apply CARD-3235/zun");
+        $this->assertEquals(
+            3,
+            $this->databases->queryFirst('mysql56', 'zun', "SELECT count(*) as nrows FROM card3235zun")->nrows
+        );
+
+
+        $out = $this->terminal("
+            php bin/datapatch status
+        ");
+        $this->assertStringContainsString("CARD-3235 (Partially Applied)", $out);
+        $this->assertRegExp("/zun\.sql (.+) Done \✓/", $out);
+        $this->assertRegExp("/reports\.sql (.+) Not Applied \✖/", $out);
+
+
+
+        $out = $this->terminal("
+            php bin/datapatch status -p CARD-3235
+        ");
+        $this->assertStringContainsString("CARD-3235 is partially applied", $out);
+        $this->assertRegExp("/zun\.sql (.+) Done \✓/", $out);
+        $this->assertRegExp("/reports\.sql (.+) Not Applied \✖/", $out);
+
+
+
+        $out = $this->terminal("
+            php bin/datapatch status -b 2019.10.12
+        ");
+        $this->assertStringContainsString("Bundle 2019.10.12 at development", $out);
+        $this->assertStringContainsString("CARD-3236 (not applied)", $out);
+        $this->assertStringContainsString("CARD-3235 (Partially Applied)", $out);
+        $this->assertRegExp("/zun\.sql (.+) Done \✓/", $out);
+        $this->assertRegExp("/reports\.sql (.+) Not Applied \✖/", $out);
+    }
+
+
 
     public function testApplyAllEnvProduction()
     {
         $this->databases = $this->helper->getDatabasesHelper('production');
 
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch deploy 2019.10.12 -e production -y
         ");
         $this->assertStringContainsString("at production env", $out);
 
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch apply-all -e production -y
         ");
         $this->assertStringContainsString("at production env", $out);
 
 
-        $status = $this->shell->run("
+        $status = $this->terminal("
             php bin/datapatch status
         ");
         $this->assertStringContainsString("CARD-3236", $status);
 
 
-        $status = $this->shell->run("
+        $status = $this->terminal("
             php bin/datapatch status -e production -y
         ");
 
@@ -315,7 +381,7 @@ class DatapatchAppTest extends TestCase
 
     public function testGenFailedPatch()
     {
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch gen:patch ERR01
         ");
 
@@ -333,7 +399,7 @@ class DatapatchAppTest extends TestCase
         file_put_contents('db/patches/ERR01/log.sql', "SELECT 1;\n");
         file_put_contents('db/patches/ERR01/pap.sql', "SELECT INS\n"); // syntax err
 
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch apply ERR01/log
         ");
         $this->assertStringContainsString("... Done", $out);
@@ -342,7 +408,7 @@ class DatapatchAppTest extends TestCase
 
 
         try {
-            $out = $this->shell->run("
+            $out = $this->terminal("
                 php bin/datapatch apply ERR01
             ");
             $this->assertTrue(FALSE);
@@ -353,10 +419,38 @@ class DatapatchAppTest extends TestCase
 
 
 
+
+        // verify script status
+        $out = $this->terminal("
+            php bin/datapatch status
+        ");
+        $this->assertStringContainsString("CARD-3235 (not applied)", $out);
+        $this->assertStringContainsString("ERR01 (Error)", $out);
+        $this->assertRegExp("/log\.sql (.+) Done \✓/", $out);
+        $this->assertRegExp("/pap\.sql (.+) Error \✖/", $out);
+        $this->assertRegExp("/pap\.sql (.+) Not Applied \✖/", $out);
+
+        // verufy patch status
+        $out = $this->terminal("
+            php bin/datapatch status --patch ERR01
+        ");
+        $this->assertStringContainsString("ERR01 is errored at development", $out);
+        $this->assertRegExp("/log\.sql (.+) Done \✓/", $out);
+        $this->assertRegExp("/pap\.sql (.+) Error \✖/", $out);
+        $this->assertRegExp("/pap\.sql (.+) Not Applied \✖/", $out);
+
+        // verify script status
+        $out = $this->terminal("
+            php bin/datapatch status --script ERR01/pap
+        ");
+        $this->assertStringContainsString("ERR01/pap.sql at development", $out);
+        $this->assertRegExp("/pap\.sql (.+) Error \✖/", $out);
+
+
         // fix syntax
         file_put_contents('db/patches/ERR01/pap.sql', "INSERT INTO hash VALUES (1500, 'key1500', 'val1500');\n");
         try {
-            $out = $this->shell->run("
+            $out = $this->terminal("
                 php bin/datapatch apply ERR01
             ");
             $this->assertTrue(FALSE);
@@ -368,7 +462,7 @@ class DatapatchAppTest extends TestCase
 
 
         // force run
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch apply ERR01 -f
         ");
 
@@ -386,7 +480,7 @@ class DatapatchAppTest extends TestCase
 
     public function testGenFailedPatch2()
     {
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch gen:patch ERR01
         ");
 
@@ -404,7 +498,7 @@ class DatapatchAppTest extends TestCase
         file_put_contents('db/patches/ERR01/log.sql', "SELECT 1;\n");
         file_put_contents('db/patches/ERR01/pap.sql', "SELECT INS\n"); // syntax err
 
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch apply ERR01/log
         ");
         $this->assertStringContainsString("... Done", $out);
@@ -413,7 +507,7 @@ class DatapatchAppTest extends TestCase
 
 
         try {
-            $out = $this->shell->run("
+            $out = $this->terminal("
                 php bin/datapatch apply ERR01
             ");
             $this->assertTrue(FALSE);
@@ -429,7 +523,7 @@ class DatapatchAppTest extends TestCase
 
         // try apply and must be denied
         try {
-            $out = $this->shell->run("
+            $out = $this->terminal("
                 php bin/datapatch apply ERR01
             ");
             $this->assertTrue(FALSE);
@@ -446,7 +540,7 @@ class DatapatchAppTest extends TestCase
 
 
         // manual run
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch exec db/patches/ERR01/pap.sql -d zun_pr --server mysql56
         ");
         $this->assertEquals(
@@ -457,7 +551,7 @@ class DatapatchAppTest extends TestCase
 
 
         // mark as executed in the first pap database
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch mark-executed ERR01/pap.sql -d zun_pr
         ");
         $this->assertEquals(
@@ -468,7 +562,7 @@ class DatapatchAppTest extends TestCase
 
 
         // force after fix
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch apply ERR01
         ");
 
@@ -495,7 +589,7 @@ class DatapatchAppTest extends TestCase
 
     public function testGenFailedPatchWithTransaction()
     {
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch gen:patch ERR01
         ");
 
@@ -515,7 +609,7 @@ class DatapatchAppTest extends TestCase
             file_get_contents('tests/scripts/transaction_test.sql')
         );
 
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch apply ERR01/log
         ");
         $this->assertStringContainsString("... Done", $out);
@@ -524,7 +618,7 @@ class DatapatchAppTest extends TestCase
 
 
         try {
-            $out = $this->shell->run("
+            $out = $this->terminal("
                 php bin/datapatch apply ERR01
             ");
             $this->assertTrue(FALSE);
@@ -540,7 +634,7 @@ class DatapatchAppTest extends TestCase
 
         // try apply and must be denied
         try {
-            $out = $this->shell->run("
+            $out = $this->terminal("
                 php bin/datapatch apply ERR01
             ");
             $this->assertTrue(FALSE);
@@ -560,7 +654,7 @@ class DatapatchAppTest extends TestCase
 
     public function testInsertCommand()
     {
-        $this->shell->run("
+        $this->terminal("
             php bin/datapatch exec tests/scripts/insert.sql -r mysql56 -d zun_*
         ");
 
@@ -573,7 +667,7 @@ class DatapatchAppTest extends TestCase
 
     public function testInsertOnServer()
     {
-        $this->shell->run("
+        $this->terminal("
             php bin/datapatch exec tests/scripts/inserts_explicit_schema.sql -r mysql57
         ");
 
@@ -586,7 +680,7 @@ class DatapatchAppTest extends TestCase
 
     public function testProtectedEnv()
     {
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch status -e development
         ");
 
@@ -595,7 +689,7 @@ class DatapatchAppTest extends TestCase
         $this->assertStringContainsString("TASK-6780", $out);
 
         try {
-            $out = $this->shell->run("
+            $out = $this->terminal("
                 php bin/datapatch status -e staging
             ");
             $this->assertTrue(FALSE);
@@ -606,7 +700,7 @@ class DatapatchAppTest extends TestCase
 
     public function testUndefinedEnv()
     {
-        $out = $this->shell->run("
+        $out = $this->terminal("
             php bin/datapatch status -e staging -y
         ");
         $this->assertStringContainsString("DEV-122", $out);
@@ -614,12 +708,19 @@ class DatapatchAppTest extends TestCase
         $this->assertStringContainsString("TASK-6780", $out);
 
         try {
-            $out = $this->shell->run("
+            $out = $this->terminal("
                 php bin/datapatch status -e beta -y
             ");
             $this->assertTrue(FALSE);
         } catch (Exception $e) {
             $this->assertStringContainsString("Invalid env \"beta\"", $e->getMessage());
         }
+    }
+
+    private function terminal($cmd)
+    {
+        $out = $this->shell->run($cmd);
+        $out = preg_replace('#\\x1b[[][^A-Za-z]*[A-Za-z]#', '', $out);
+        return $out;
     }
 }

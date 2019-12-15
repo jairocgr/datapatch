@@ -79,6 +79,12 @@ class DatapatchBatchTest extends TestCase
 
         $this->nonAppliedPatchesContains("BATCH");
 
+        $out = $this->shell->run("
+            php bin/datapatch status -p BATCH
+        ");
+        $this->assertStringContainsString('BATCH is unfinished', $out);
+        $this->assertRegExp("/inserts\.sql (.+) Unfinished \✖/", $out);
+
         try {
             $out = $this->shell->run("
                 php bin/datapatch apply BATCH
@@ -102,6 +108,13 @@ class DatapatchBatchTest extends TestCase
             7000,
             $this->databases->queryFirst('mysql56', 'zun', "SELECT count(*) as nrows FROM users")->nrows
         );
+
+
+        $out = $this->shell->run("
+            php bin/datapatch status -p BATCH
+        ");
+        $this->assertStringContainsString('BATCH is fully applied', $out);
+        $this->assertRegExp("/inserts\.sql (.+) Done \✓/", $out);
     }
 
     private function nonAppliedPatchesContains($patch)

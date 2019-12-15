@@ -48,13 +48,57 @@ class Patch
      */
     public function isFullyApplied()
     {
+        return $this->getNumberOfAppliedScript() == count($this->scripts);
+    }
+
+    private function getNumberOfAppliedScript()
+    {
+        $count = 0;
+
         foreach ($this->scripts as $script) {
-            if ($script->notFullyApplied()) {
-                return FALSE;
+            if ($script->isFullyApplied()) {
+                $count++;
             }
         }
 
-        return TRUE;
+        return $count;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isErrored()
+    {
+        foreach ($this->scripts as $script) {
+            if ($script->isErrored()) {
+                return TRUE;
+            }
+        }
+
+        return FALSE;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isUnfinished()
+    {
+        foreach ($this->scripts as $script) {
+            if ($script->isUnfinished()) {
+                return TRUE;
+            }
+        }
+
+        return FALSE;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isPartiallyApplied()
+    {
+        $applied = $this->getNumberOfAppliedScript();
+        return $applied > 0 && $applied < count($this->scripts);
     }
 
     private function setScripts($scripts)

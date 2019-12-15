@@ -47,15 +47,21 @@ class MysqlDatabase implements Database
      */
     public function getScriptState($script)
     {
-        $row = $this->fetch("
-            select status from __datapatch
-            where patch  = '{$script->getPatch()}' and
-                  script = '{$script->getName()}'
-        ");
+        try {
+            $this->lock();
 
-        return (empty($row))
-            ? Database::SCRIPT_NOT_EXECUTED
-            : $row->status;
+            $row = $this->fetch("
+                select status from __datapatch
+                where patch  = '{$script->getPatch()}' and
+                      script = '{$script->getName()}'
+            ");
+
+            return (empty($row))
+                ? Database::SCRIPT_NOT_EXECUTED
+                : $row->status;
+        } finally {
+            $this->unlock();
+        }
     }
 
     private function exec($command)

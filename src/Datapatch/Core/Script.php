@@ -40,16 +40,66 @@ class Script
      */
     public function isFullyApplied()
     {
+        return $this->getNumberOfExecutedDatabases() == count($this->getDatabases());
+    }
+
+    /**
+     * @return bool
+     */
+    public function isErrored()
+    {
         foreach ($this->getDatabases() as $database)
         {
             $state = $database->getScriptState($this);
 
-            if ($state != Database::SCRIPT_EXECUTED) {
-                return FALSE;
+            if ($state == Database::SCRIPT_ERRORED) {
+                return TRUE;
             }
         }
 
-        return TRUE;
+        return FALSE;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isUnfinished()
+    {
+        foreach ($this->getDatabases() as $database)
+        {
+            $state = $database->getScriptState($this);
+
+            if ($state == Database::SCRIPT_UNFINISHED) {
+                return TRUE;
+            }
+        }
+
+        return FALSE;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isPartiallyApplied()
+    {
+        $executed = $this->getNumberOfExecutedDatabases();
+        return $executed > 0 && $executed < count($this->getDatabases());
+    }
+
+    public function getNumberOfExecutedDatabases()
+    {
+        $executed = 0;
+
+        foreach ($this->getDatabases() as $database)
+        {
+            $state = $database->getScriptState($this);
+
+            if ($state == Database::SCRIPT_EXECUTED) {
+                $executed++;
+            }
+        }
+
+        return $executed;
     }
 
     /**
