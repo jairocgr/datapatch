@@ -107,7 +107,7 @@ trait ScriptRunner
             }
 
             else {
-                $status = "<bfade>Not applied ✖</bfade>";
+                $status = "<bfade>Not Applied ✖</bfade>";
             }
 
             $this->puts(

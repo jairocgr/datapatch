@@ -106,8 +106,8 @@ class ConsoleOutput
         $message = str_replace("<fade>", "\e[2m", $message);
         $message = str_replace("</fade>", "\e[22m", $message);
 
-        $message = str_replace("<bfade>", "\e[1;90m", $message);
-        $message = str_replace("</bfade>", "\e[22m", $message);
+        $message = str_replace("<bfade>", "\033[1;30m", $message);
+        $message = str_replace("</bfade>", "\033[0m", $message);
 
         $message = str_replace("<f>", "\e[2m", $message);
         $message = str_replace("</f>", "\e[22m", $message);
