@@ -25,7 +25,7 @@ class ApplyCommand extends BaseCommand
              ->addArgument(
                 'item',
                 InputArgument::IS_ARRAY | InputArgument::REQUIRED,
-                'The choosen patches/scripts (ex: v1.2.39, TICKET-3232, TASK-328/new_users)'
+                'The choosen patches/scripts (ex: TICKET-3232, TASK-328/new_users)'
              )
 
              ->addOption(
