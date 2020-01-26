@@ -6,13 +6,12 @@ servers.
 ## Why another migration tool?
 
 Database migration tools are made for applications that have a single database
-schema on a single database server.
+schema deployed on a single database server.
 
-`datapatch` was made with a multi-schemas setup in mind.
+`datapatch` was made with a multi-schema setup in mind.
 
-It is not unusual to encounter large and legacy applications with diferent
-schemas.
-
+It is not unusual for legacy applications to have diferent schemas across
+multiple servers and regions.
 
 ## Requirements
 
@@ -41,7 +40,7 @@ Inside your project folder run:
 
     php vendor/bin/datapatch init
 
-The `init` command will setup the basic structure required.
+The `init` command will setup the basic structure required:
 
 ```
 project-dir/
@@ -61,10 +60,12 @@ passwords and how to apply the database patches.
 
 ## Patches
 
-With *datapatch* you don't write _migrations_, you write _*patches*_.
+With `datapatch` you don't write _migrations_, you write _*patches*_.
 
-Patches are the basic unit-of-change and are made by a directory with one or more
-native SQL scripts.
+Patches are the basic unit-of-change and are made by a directory with one or
+more native SQL scripts.
+
+#### Creating Patches
 
 To generate a new patch named `201912231531` you can run the command:
 
@@ -82,9 +83,26 @@ project-dir/
            +- change_on_schema2.sql
            +- views.sql
         |- 201912270907/
+        |- ...
 ```
 
 In the example above, you have a patch named `201912231531` containing 3 scripts.
+
+#### Scripts
+
+Patch scripts it's where you write your database scripts
+
+```SQL
+-- 201912231531/change_on_schema1.sql
+
+ALTER TABLE employee MODIFY age INT NOT NULL;
+ALTER TABLE users ADD COLUMN...
+```
+
+You should delete empty script files and keep patches clean and tight
+as possible.
+
+#### Applying a Patch
 
 To apply the forementioned patch you can run the following command and optionaly
 informing the target environments
@@ -94,19 +112,68 @@ informing the target environments
 The `apply` command know how to apply a patch by reading the
 `datapatch.config.php` file.
 
-### Patch naming
+#### Appling all non-applied Patches
 
-You can addopt a naming scheme of your choose but it should be a cannonical date
+Just just like a regular `migrate` command on others database migrations tools,
+you can also apply all the non-applied patches with the command:
+
+    php vendor/bin/datapatch apply-all
+
+It will try to apply all the patches in alphabetical order.
+
+#### Patch naming
+
+You can adopt a naming scheme of your choose but it should be a cannonical date
 time string (ex: 201912122520) or a project management tool task number
 (ex: TASK-21445, BUG-231).
+
+## Errors and Unfinished Patches
+
+If a script inside a patch raise an error or had his execution interrupted and
+was left unfinished, you will not be able to resume the patch application until
+you inform *datapatch* that you fix any wrong database state left by unfinished/errored script.
+
+After you fix the script code and the database, you must mark it as executed
+in the database that was left dangling:
+
+    php vendor/bin/datapatch mark-executed TASK-1232/change_schema1.sql -d {errored_database}
+
+Only then you will be able to continue the execution of the patch.
+
+## Transactions
+
+It is your job to put (or don't) transactions inside your scripts.
+
+The *dapatch* will not wrap your scripts inside a transaction.
+
+> Remember that MySQL transactions doesn't rollback DDL changes
 
 ## Bundles
 
 Bundles are YAML files listing a group of patches that should be applied
 together in a particular order.
 
-Bundles are very usefull when you whant to bundle up a group of patches for a
-particular version release:
+Bundles are very usefull when you want to bundle up a group of patches for a
+particular version release.
+
+#### Create a Bundle
+
+To create a bundle you should run:
+
+    php vendor/bin/datapatch gen:bundle v1.7.23
+
+Then the bundle `v1.7.23` will be created at the bundles directories:
+
+```
+project-dir/
+  |- db/
+     |- bundles/
+        +- v1.6.0.yml
+        +- v1.7.7.yml
+        +- v1.7.23.yml
+```
+
+Then is up to you to list all the patches inside the bundle file:
 
 ```yaml
 #
@@ -123,9 +190,17 @@ BUG-212
 BUG-209
 ```
 
-To deploy the bundle `v1.7.23` you must run
+#### Apply (deploy) a Bundle
+
+To deploy a bundle at the environment of your choose, you must run:
 
     php vendor/bin/datapatch deploy v1.7.23 --env production
+
+## Rollback
+
+The `datapatch` does not support rollback/down migrations by design.
+
+It is up to you to manually carefully undo a patch.
 
 ## More
 
